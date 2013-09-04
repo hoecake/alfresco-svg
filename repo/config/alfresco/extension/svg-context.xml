@@ -25,6 +25,11 @@
   <bean id="transformer.svg.txt"
     class="svg.transform.SvgTransformer"
     parent="baseContentTransformer" />
-
-
+  <bean id="transformer.svg.resizer"
+    class="svg.transform.SvgResizeTransformer"
+    parent="baseContentTransformer" />
+   <bean id="svgThumbnailer" class="svg.behaviour.SvgThumbnail">
+        <constructor-arg><ref bean="policyComponent" /></constructor-arg>
+        <constructor-arg><ref bean="ServiceRegistry" /></constructor-arg>
+    </bean>
 </beans>

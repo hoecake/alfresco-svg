@@ -52,7 +52,7 @@
 	<property name="build.lib.dir" value="shared/lib" />
 	<!-- alternatively 'shared/lib' , but some java classes are not available here -->
 	<property name="yuicompress.warn" value="false" />
-	<property name="javac.debug" value="on" />
+	<property name="javac.debug" value="off" />
 	<!-- Tomcat properties to reload web scripts or the manager webapp -->
 	<property name="tomcat.url" value="http://localhost:8080" />
 	<property name="tomcat.repo.url" value="${tomcat.url}" />
@@ -255,9 +255,9 @@
 			<globmapper from="alfresco/web-extension/*.xml" to="*.xml" handledirsep="true" />
 		</copy>
 		<!-- Minify JS -->
-		<!--yuicompress fromdir="${res.dir}" todir="${build.jar.dir}/META-INF" excludes="**/*-min.js" warn="${yuicompress.warn}">
+		<yuicompress fromdir="${res.dir}" todir="${build.jar.dir}/META-INF" excludes="**/*-min.js" warn="${yuicompress.warn}">
 			<include name="**/*.js" />
-		</yuicompress -->
+		</yuicompress>
 	</target>
 
 	<!-- Build the JAR file -->

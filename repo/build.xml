@@ -250,9 +250,9 @@
 			<globmapper from="alfresco/web-extension/*.xml" to="*.xml" handledirsep="true" />
 		</copy>
 		<!-- Minify JS -->
-		<!--yuicompress fromdir="${res.dir}" todir="${build.jar.dir}/META-INF" excludes="**/*-min.js" warn="${yuicompress.warn}">
+		<yuicompress fromdir="${res.dir}" todir="${build.jar.dir}/META-INF" excludes="**/*-min.js" warn="${yuicompress.warn}">
 			<include name="**/*.js" />
-		</yuicompress -->
+		</yuicompress>
 	</target>
 
 	<!-- Build the JAR file -->

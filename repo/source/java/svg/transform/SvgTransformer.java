@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.util.zip.GZIPInputStream;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.OutputKeys;
@@ -20,10 +21,9 @@ import org.alfresco.repo.content.transform.AbstractContentTransformer2;
 import org.alfresco.service.cmr.repository.ContentReader;
 import org.alfresco.service.cmr.repository.ContentWriter;
 import org.alfresco.service.cmr.repository.TransformationOptions;
-import org.alfresco.service.cmr.thumbnail.ThumbnailService;
-import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
+import org.apache.pdfbox.io.PushBackInputStream;
 import org.w3c.dom.Document;
 
 public class SvgTransformer extends AbstractContentTransformer2 {
@@ -53,6 +53,7 @@ public class SvgTransformer extends AbstractContentTransformer2 {
     	}
     	if (LOG.isTraceEnabled()) LOG.trace("COMPLETED");
     }
+    
   @Override
   public boolean isTransformable(String sourceMimetype,
       String targetMimetype, TransformationOptions options) {
@@ -68,26 +69,41 @@ public class SvgTransformer extends AbstractContentTransformer2 {
     return false;
   }
   
-  private InputStream getInputStream(ContentReader reader) throws IOException {
-	  InputStream is = null;
-	  try {
-		  is = reader.getContentInputStream();
-		  
-		  if (LOG.isDebugEnabled()) LOG.debug("UNZIP");  
-		  ZipArchiveInputStream zais = new ZipArchiveInputStream(is);
-		  
-		  return zais;
-		  
-	  } catch (Exception e)
-	  {
-		  // return standard input stream
-	  }
-	  IOUtils.closeQuietly(is);
-	  return reader.getReader().getContentInputStream(); // new reader and inputstream
-	  
-  }
+//  private InputStream getInputStream(ContentReader reader) throws IOException {
+//	  InputStream is = null;
+//	  ZipArchiveInputStream zais = null;
+//	  try {
+//		  is = reader.getContentInputStream();
+//		  
+//		  if (LOG.isDebugEnabled()) LOG.debug("UNZIP");  
+//		  zais = new ZipArchiveInputStream(is);
+//		  if(null != zais && null != zais.getNextEntry()) {
+//			  IOUtils.closeQuietly(zais);
+//			  return new ZipArchiveInputStream(reader.getReader().getContentInputStream());
+//		  }
+//		  
+//	  } catch (Exception e)
+//	  {
+//		  
+//		  // return standard input stream
+//	  }
+//	  if (LOG.isDebugEnabled()) LOG.debug("NEW STREAM");
+//	  IOUtils.closeQuietly(zais);
+//	  IOUtils.closeQuietly(is);
+//	  return reader.getReader().getContentInputStream(); // new reader and inputstream
+//	  
+//  }
 
-  
+  public static InputStream decompressStream(InputStream input) throws IOException {
+	     PushBackInputStream pb = new PushBackInputStream( input, 2 ); //we need a pushbackstream to look ahead
+	     byte [] signature = new byte[2];
+	     pb.read( signature ); //read the signature
+	     pb.unread( signature ); //push back the signature to the stream
+	     if( signature[ 0 ] == (byte) (GZIPInputStream.GZIP_MAGIC) && signature[ 1 ] == (byte) (GZIPInputStream.GZIP_MAGIC >> 8) ) //check if matches standard gzip maguc number
+	       return new GZIPInputStream( pb );
+	     else 
+	       return pb;
+	}
   
 	@Override
 	protected void transformInternal(ContentReader reader,
@@ -95,18 +111,25 @@ public class SvgTransformer extends AbstractContentTransformer2 {
 			throws Exception {
 		if (LOG.isDebugEnabled())
 			LOG.debug("TRANSFORM " + options);
-		final OutputStream out = new BufferedOutputStream(
-				writer.getContentOutputStream());
+		final OutputStream out = new BufferedOutputStream(writer.getContentOutputStream());
 
-		if (LOG.isTraceEnabled())
-			LOG.trace("OutputStream");
+		if (LOG.isTraceEnabled())	LOG.trace("OutputStream");
 		InputStream in = null;
 		try {
-			in = getInputStream(reader);
-			
-			Document doc = dfactory.newDocumentBuilder().parse(in);
-
-			if (LOG.isDebugEnabled()) {
+			//in = getInputStream(reader);
+			in = decompressStream(reader.getContentInputStream());
+			Document doc = null;
+			try {
+				
+				doc = dfactory.newDocumentBuilder().parse(in);
+			} catch (Exception e) {
+				LOG.error("Parse error", e);
+				IOUtils.closeQuietly(in);
+				in = reader.getReader().getContentInputStream();
+				doc = dfactory.newDocumentBuilder().parse(in);
+			}
+			if (LOG.isTraceEnabled()) {
+				
 				printDocument(doc, System.out);
 			}
 			transformer.transform(new DOMSource(doc), new StreamResult(out));
