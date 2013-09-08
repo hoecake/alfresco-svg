@@ -44,6 +44,7 @@ public class SvgTransformer extends AbstractContentTransformer2 {
 	    	}
 	    	if (LOG.isDebugEnabled()) {
 	    		LOG.debug(IOUtils.toString(in));
+			IOUtils.closeQuietly(in);
 	    		in = SvgTransformer.class.getClassLoader().getResourceAsStream(SVG2TEXT_XSL);
 	    	}
 	    	 if (LOG.isTraceEnabled()) LOG.trace("Resource: " + in);
